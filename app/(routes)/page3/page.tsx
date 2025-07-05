@@ -1,6 +1,9 @@
 
+
+
+
+
 "use client";
-import { useEffect, useState } from "react";
 import data from "../../../lib/db.json";
 
 
@@ -12,7 +15,7 @@ type Server = {
 };
 
 
-export default function page3() {
+export default function Page3() {
 const servers: Server[] = data;
 
 

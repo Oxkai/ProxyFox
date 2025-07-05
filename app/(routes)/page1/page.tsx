@@ -8,7 +8,8 @@ type Tool = {
   description: string;
 };
 
-export default function page1() {
+
+export default function Page1() {
    const [wallet, setWallet] = useState("");
   const [serverUri, setServerUri] = useState("");
   const [serverName, setServerName] = useState("");
@@ -17,19 +18,17 @@ export default function page1() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [prices, setPrices] = useState<{ [key: string]: string }>({});
   const [monetizedUri, setMonetizedUri] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
  const [showModal, setShowModal] = useState(false);
 
 
   const fetchTools = async () => {
     if (!serverUri) {
-      setError("Please enter a Server URI first.");
+     
       return;
     }
 
-    setLoading(true);
-    setError(null);
+   
     setTools([]);
 
     try {
@@ -38,13 +37,13 @@ export default function page1() {
         setTools(response.data.tools);
         
       } else {
-        setError("Unexpected response format.");
+       
       }
-    } catch (err: any) {
-      setError("Failed to fetch tools: " + (err.message || "Unknown error"));
+    } catch (err: unknown) {
+     console.error(err);
     }
 
-    setLoading(false);
+    
   };
 
   const handlePriceChange = (toolName: string, value: string) => {

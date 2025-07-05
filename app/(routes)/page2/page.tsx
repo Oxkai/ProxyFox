@@ -1,96 +1,144 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import axios from "axios";
-import { privateKeyToAccount } from "viem/accounts";
-import { Hex } from "viem";
+import { useState } from 'react'
+import { JsonRpcProvider, Wallet, parseEther, Block, TransactionReceipt } from 'ethers'
 
+export default function PaymentPage() {
+  const [response, setResponse] = useState<string>('')
+  const [loading, setLoading] = useState(false)
 
-const privateKey = `0xd395aea4aa82b49e5ab9e31277ff6559431896b775bfc8e6dcd2de8ed2dfd21c` as Hex;
+  const provider = new JsonRpcProvider('https://testnet.evm.nodes.onflow.org/')
+  const privateKey = '0xd395aea4aa82b49e5ab9e31277ff6559431896b775bfc8e6dcd2de8ed2dfd21c'
+  const wallet = new Wallet(privateKey, provider)
 
+  const serverId = '61f1b4b7-d495-48dd-b333-f84bb4a09ab1-weather_broad'
+  const toolName = 'weather'
 
-export default function Home() {
+  const encodePaymentHeader = (txInfo: any) => {
+    const jsonStr = JSON.stringify(txInfo)
+    const base64 = btoa(jsonStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    return base64
+  }
 
-  const [location, setLocation] = useState("");
-  const [result, setResult] = useState<string | null>(null);
-  const [statusCode, setStatusCode] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const makePayment = async (recipient: string, amountInEth: string) => {
+    const payerAddress = await wallet.getAddress()
 
-  const account = privateKeyToAccount(privateKey);
-
-  console.log('account',account)
-
-  const fetchWeather = async () => {
-    setLoading(true);
-    setStatusCode(null);
-    setResult(null);
-
-    try {
-      const response = await axios.post("http://localhost:3000/api/proxy/61f1b4b7-d495-48dd-b333-f84bb4a09ab1-weather_broad/weather", {
-        tool: "weather",
-        input: { location },
-      });
-
-      console.log("Full response:", response);
-
-      const fullResponse = {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        data: response.data,
-      };
-
-      setStatusCode(response.status);
-      setResult(JSON.stringify(fullResponse, null, 2));
-    } catch (error: any) {
-      if (error.response) {
-        const errorResponse = {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          headers: error.response.headers,
-          data: error.response.data,
-        };
-        setStatusCode(error.response.status);
-        setResult(JSON.stringify(errorResponse, null, 2));
-      } else {
-        setResult("Error: " + error.message);
-      }
+    const unsignedTx = {
+      to: recipient,
+      value: parseEther(amountInEth),
     }
 
-    setLoading(false);
-  };
+    const signature = await wallet.signTransaction(unsignedTx)
+    const txResponse = await wallet.sendTransaction(unsignedTx)
+    const receipt: TransactionReceipt | null = await txResponse.wait()
+    if (!receipt) throw new Error('Transaction receipt is null.')
+
+    const block: Block | null = await provider.getBlock(receipt.blockNumber)
+    if (!block) throw new Error('Block not found.')
+
+    const timestamp = new Date(block.timestamp * 1000).toLocaleString()
+
+    const txInfo = {
+      payer: payerAddress,
+      recipient,
+      amount: `${amountInEth} FLOW`,
+      asset: 'FLOW',
+      signature,
+      transactionHash: txResponse.hash,
+      blockNumber: receipt.blockNumber,
+      status: receipt.status === 1 ? 'Success' : 'Failed',
+      timestamp,
+    }
+
+    return txInfo
+  }
+
+  const makeSmartPostRequest = async () => {
+    try {
+      setLoading(true)
+      setResponse('')
+
+      const proxyUrl = `http://localhost:3000/api/proxy/${serverId}/${toolName}`
+      const postBody = {
+        tool: toolName,
+        input: {
+          text: 'Hello MCP!',
+        },
+      }
+
+      let res = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(postBody),
+      })
+
+      if (res.status === 402) {
+        const paymentData = await res.json()
+
+        if (!paymentData.recipient) throw new Error('Recipient missing in server response.')
+        if (!paymentData.amount) throw new Error('Amount missing in server response.')
+
+        const rawAmount = paymentData.amount.split(' ')[0]
+        if (!rawAmount || isNaN(Number(rawAmount))) {
+          throw new Error(`Invalid payment amount received: "${paymentData.amount}"`)
+        }
+
+        setResponse(`402 Payment Required.\n${JSON.stringify(paymentData, null, 2)}\n\nPaying now...`)
+
+        const recipient = paymentData.recipient
+        const amount = rawAmount
+
+        const txInfo = await makePayment(recipient, amount)
+        const paymentHeader = encodePaymentHeader(txInfo)
+
+        res = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-payment': paymentHeader,
+          },
+          body: JSON.stringify(postBody),
+        })
+
+        const finalData = await res.json()
+
+        setResponse(
+          `✅ Paid successfully. Transaction: ${txInfo.transactionHash}\n\nFinal Response:\n${JSON.stringify(
+            finalData,
+            null,
+            2
+          )}`
+        )
+      } else {
+        const normalData = await res.json()
+        setResponse(`✅ Normal Response:\n${JSON.stringify(normalData, null, 2)}`)
+      }
+    } catch (error: any) {
+      setResponse(`❌ Error: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <main className="flex flex-col items-center  h-screen p-6 bg-black text-white">
-      <h1 className="text-3xl font-bold mb-6">Weather Checker</h1>
-
-      <input
-        type="text"
-        value={location}
-        onChange={(e) => setLocation(e.target.value)}
-        placeholder="Enter location"
-        className="p-2 border border-gray-300 rounded w-64 mb-4 text-white"
-      />
-
+    <div className="flex flex-col items-center justify-center min-h-screen  p-6 space-y-8">
       <button
-        onClick={fetchWeather}
-        disabled={!location || loading}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+        onClick={makeSmartPostRequest}
+        disabled={loading}
+        className={`px-6 py-3 text-white rounded-lg ${
+          loading ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
+        }`}
       >
-        {loading ? "Fetching..." : "Get Weather"}
+        {loading ? 'Processing...' : 'Make Proxy POST Request'}
       </button>
 
-      {statusCode !== null && (
-        <p className="mt-4 text-lg">
-          Status Code: <span className="font-bold">{statusCode}</span>
-        </p>
-      )}
-
-      {result && (
-        <pre className="mt-4 p-4 bg-white text-black border rounded w-full max-w-2xl overflow-auto">
-          {result}
+      {response && (
+        <pre className="mt-6 p-4 bg-black rounded-lg shadow-md text-sm w-full max-w-2xl overflow-x-auto text-green-400">
+          {response}
         </pre>
       )}
-    </main>
-  );
+    </div>
+  )
 }

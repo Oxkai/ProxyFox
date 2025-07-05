@@ -45,7 +45,8 @@ export default function Header() {
   const navItems = [
     { label: "Register", href: "/page1" },
     { label: "Server", href: "/page3" },
-    { label: "Test", href: "/page2" },
+    { label: "Test", href: "/page2" }
+    
     
   ];
   return (
