@@ -49,7 +49,7 @@ const response = await fetch(`${serverConfig.serverUri}/tools`, {
     const result = await response.json();
 
     // 👇 wrap it here
-    return NextResponse.json({ tools: result });
+return NextResponse.json(result);
   } catch (err) {
     console.error("Error forwarding GET request:", err);
     return NextResponse.json({ error: "Failed to forward request" }, { status: 500 });

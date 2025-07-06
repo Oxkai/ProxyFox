@@ -3,6 +3,10 @@
 # dependencies
 /node_modules
 /server/node_modules
+/mcpay-client/node_modules
+/proxyFox/node_modules
+
+
 /.pnp
 .pnp.*
 .yarn/*
