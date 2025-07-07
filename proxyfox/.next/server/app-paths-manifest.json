@@ -1,5 +1,0 @@
-{
-  "/(routes)/page3/page": "app/(routes)/page3/page.js",
-  "/servers/[serverId]/page": "app/servers/[serverId]/page.js",
-  "/(routes)/page1/page": "app/(routes)/page1/page.js"
-}
