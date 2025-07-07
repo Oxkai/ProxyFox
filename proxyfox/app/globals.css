@@ -33,3 +33,11 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Safari and Chrome */
 }
+
+@font-face {
+  font-family: 'TG Frekuent Mono Variable';
+  src: url('/fonts/TG-Frekuent-Mono-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
