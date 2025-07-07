@@ -3,7 +3,7 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)](https://nodejs.org)
 [![Flow Blockchain](https://img.shields.io/badge/blockchain-Flow-00D4AA.svg)](https://flow.com)
 
-ProxyFox is a developer-grade monetization infrastructure for AI tools and MCP (Model Control Proxy) servers. It implements a pay-per-use on-chain payment gating mechanism over HTTP using a custom x402-like protocol enforced via Flow blockchain.
+ProxyFox is a developer-grade monetization infrastructure for AI tools and MCP (Model Control Proxy) servers. It implements a pay-per-use on-chain payment gating mechanism over HTTP using a custom x402-like protocol enforced via Flow blockchain.proxyfox also work as mcp marketplace where user can explore the servers and mcp tools
 
 This project was built for fully decentralized AI agent tooling, enabling anyone to run monetized MCP servers while safely handling payment verifications on-chain.
 
